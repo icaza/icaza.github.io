@@ -1,14 +1,162 @@
-<html>
-    <style>
-        body {background-color: rgb(41, 44, 51);}
-        .center {
-        display: block;
-        margin-left: auto;
-        margin-right: auto;
-        width: 50%;
-        }
-      </style>
-    <body>
-        <img src="opt3.png" alt="Paris" class="center">
-    </body>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>YT Escape Player</title>
+<style>
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background: #000;
+  overflow: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+#player-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#player {
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+
+#controls {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 60px;
+  background: #111;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 15px;
+  padding: 0 20px;
+  box-shadow: 0 -2px 10px rgba(0,0,0,0.3);
+}
+
+button {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 140px;
+}
+
+#back {
+  background: #cc0000;
+  color: #fff;
+}
+
+#back:hover {
+  background: #ff0000;
+  transform: translateY(-1px);
+}
+
+#open {
+  background: #333;
+  color: #fff;
+  border: 1px solid #555;
+}
+
+#open:hover {
+  background: #444;
+  border-color: #666;
+  transform: translateY(-1px);
+}
+
+#loading {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: #fff;
+  font-size: 18px;
+  z-index: 10;
+}
+
+@media (max-width: 480px) {
+  #controls {
+    height: 70px;
+    padding: 8px;
+    gap: 10px;
+  }
+  button {
+    flex: 1;
+    font-size: 13px;
+    padding: 12px 8px;
+    min-width: unset;
+  }
+}
+</style>
+</head>
+<body>
+<div id="loading">Loading video...</div>
+<div id="player-container">
+  <iframe id="player" 
+    frameborder="0" 
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
+    allowfullscreen>
+  </iframe>
+</div>
+<div id="controls">
+  <button id="back">← Return to YouTube</button>
+  <button id="open">Open on YouTube ↗</button>
+</div>
+
+<script>
+
+const params = new URLSearchParams(window.location.search);
+const videoId = params.get('v');
+const originalUrl = params.get('url');
+
+const player = document.getElementById('player');
+const loading = document.getElementById('loading');
+
+if (videoId) {
+  const embedUrl = `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1&iv_load_policy=3`;
+  player.src = embedUrl;
+  player.onload = () => {
+    setTimeout(() => {
+      loading.style.display = 'none';
+    }, 1000);
+  };
+}
+
+document.getElementById('back').addEventListener('click', () => {
+  if (originalUrl) {
+    window.location.href = decodeURIComponent(originalUrl);
+  } else {
+    window.location.href = 'https://www.youtube.com/';
+  }
+});
+
+document.getElementById('open').addEventListener('click', () => {
+  window.open(`https://www.youtube.com/watch?v=${videoId}`, '_blank');
+});
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    document.getElementById('back').click();
+  }
+  if (e.key === 'Enter' && e.ctrlKey) {
+    document.getElementById('open').click();
+  }
+});
+</script>
+</body>
 </html>
