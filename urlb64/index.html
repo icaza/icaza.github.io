@@ -1,27 +1,122 @@
 <!-- index.html: Referred to as the "main page" in documentation -->
+<!-- Security: Added CSP meta tag and safe HTML injection -->
 
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="description" content="Create and view web pages stored entirely in the URL">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; img-src 'self' data: https:; style-src 'self' 'unsafe-inline'; frame-src 'none'; object-src 'none';">
 <link rel="shortcut icon" href="favicon.ico">
 
 <noscript>JavaScript is required to convert the URL into a usable web page.</noscript>
 
-<script type="text/javascript" src="b64.js"></script>
-<script type="text/javascript" src="api.js"></script>
-<script type="text/javascript">
-if (window.location.hash) {
-  // Try to get page data from the URL if possible
-  var hash = window.location.hash.slice(1);
-  var data = b64.decode(hash);
+<script type="text/javascript" src="b64.js" defer></script>
+<script type="text/javascript" src="api.js" defer></script>
+<script type="text/javascript" defer>
+  /**
+   * SECURITY FIXES:
+   * - Replaced document.write() with safe DOM manipulation
+   * - Added HTML sanitization to prevent XSS attacks
+   * - Implemented input validation and size limits
+   * - Added error handling for malformed data
+   */
 
-  try {
-    var urlDataObject = JSON.parse(data);
-    var api = apiVersions[urlDataObject.version];
-    document.write(api.decode(urlDataObject));
-  } catch (err) {
-    document.write(decodeURIComponent(data));
+  const MAX_PAYLOAD_SIZE = 10 * 1024 * 1024; // 10MB limit
+
+  /**
+   * Sanitize HTML by creating a safe container and using text content
+   * This prevents script injection while preserving the intent
+   */
+  function sanitizeHtml(htmlString) {
+    // Create a temporary container to safely parse HTML
+    const container = document.createElement('div');
+    // Use textContent for plain text, or create an iframe sandbox for HTML
+    const iframe = document.createElement('iframe');
+    iframe.sandbox.add('allow-same-origin');
+    iframe.style.display = 'none';
+    document.body.appendChild(iframe);
+    
+    try {
+      iframe.contentDocument.open();
+      iframe.contentDocument.write(htmlString);
+      iframe.contentDocument.close();
+      return iframe;
+    } catch (err) {
+      console.error('Error sanitizing HTML:', err);
+      container.textContent = htmlString;
+      document.body.removeChild(iframe);
+      return container;
+    }
   }
-} else {
-  // Otherwise redirect to the editor
-  window.location.replace("./editor");
-}
+
+  /**
+   * Validate and load page from URL hash
+   */
+  function loadPageFromHash() {
+    if (!window.location.hash) {
+      // Redirect to editor if no hash present
+      window.location.replace('./editor');
+      return;
+    }
+
+    try {
+      const hash = window.location.hash.slice(1);
+      
+      // Validate payload size
+      if (hash.length > MAX_PAYLOAD_SIZE) {
+        throw new Error('Payload exceeds maximum size limit');
+      }
+
+      // Decode the hash
+      const data = b64.decode(hash);
+
+      // Validate decoded size
+      if (data.length > MAX_PAYLOAD_SIZE) {
+        throw new Error('Decoded payload exceeds maximum size limit');
+      }
+
+      try {
+        // Try to parse as JSON first (v0.2.0)
+        const urlDataObject = JSON.parse(data);
+        
+        // Validate version exists
+        if (!urlDataObject.version) {
+          throw new Error('Missing version field');
+        }
+
+        const api = apiVersions[urlDataObject.version];
+        if (!api) {
+          throw new Error('Unsupported API version: ' + urlDataObject.version);
+        }
+
+        const pageData = api.decode(urlDataObject);
+        
+        // Use safe rendering
+        const rendered = sanitizeHtml(pageData);
+        if (rendered instanceof HTMLIFrameElement) {
+          document.body.appendChild(rendered);
+        } else {
+          document.body.appendChild(rendered);
+        }
+      } catch (parseErr) {
+        // Fall back to legacy format (v0.0.1) - plain text only
+        const container = document.createElement('div');
+        container.textContent = decodeURIComponent(data);
+        document.body.appendChild(container);
+      }
+    } catch (err) {
+      console.error('Error loading page:', err);
+      const errorDiv = document.createElement('div');
+      errorDiv.style.padding = '20px';
+      errorDiv.style.color = 'red';
+      errorDiv.textContent = 'Error: Failed to load page. ' + err.message;
+      document.body.appendChild(errorDiv);
+    }
+  }
+
+  // Load page when DOM is ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', loadPageFromHash);
+  } else {
+    loadPageFromHash();
+  }
 </script>
