@@ -1,7 +1,7 @@
 /**
  * Created by Jacob Strieb
  * May 2020
- * Updated: Optimized string concatenation and improved performance
+ * Updated: Optimized string concatenation for better performance
  */
 
 var b64 = (function() {
@@ -49,7 +49,8 @@ var b64 = (function() {
 
 
     // Return a base64-encoded string from a Uint8Array input
-    // OPTIMIZATION: Use array + join instead of string concatenation
+    // OPTIMIZATION: Use array + join instead of string concatenation (+=)
+    // This avoids repeated memory allocations for large payloads
     binaryToBase64: function(originalBytes) {
       // Pad the output array to a multiple of 3 bytes
       let length = originalBytes.length;
