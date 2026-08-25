@@ -1,6 +1,7 @@
 /**
  * Created by Jacob Strieb
  * May 2020
+ * Updated: Optimized string concatenation and improved performance
  */
 
 var b64 = (function() {
@@ -48,6 +49,7 @@ var b64 = (function() {
 
 
     // Return a base64-encoded string from a Uint8Array input
+    // OPTIMIZATION: Use array + join instead of string concatenation
     binaryToBase64: function(originalBytes) {
       // Pad the output array to a multiple of 3 bytes
       let length = originalBytes.length;
@@ -55,7 +57,7 @@ var b64 = (function() {
       let bytes = new Uint8Array(length + added);
       bytes.set(originalBytes);
 
-      let output = ""
+      let output = []
       for (let i = 0; i < bytes.length; i += 3) {
         // Convert 3 8-bit bytes into 4 6-bit indices and get a character from
         // the master list based on each 6-bit index
@@ -63,21 +65,22 @@ var b64 = (function() {
         // => 4 x 6-bit:  |------|-- ----|---- --|------|
 
         // Get the first 6 bits of the first byte
-        output += _a[ bytes[i] >>> 2 ];
+        output.push(_a[ bytes[i] >>> 2 ]);
         // Merge the end 2 bits of the first byte with the first 4 of the second
-        output += _a[ ((bytes[i] & 0x3) << 4) | (bytes[i + 1] >>> 4) ];
+        output.push(_a[ ((bytes[i] & 0x3) << 4) | (bytes[i + 1] >>> 4) ]);
         // Merge the end 4 bits of the second byte with the first 2 of the third
-        output += _a[ ((bytes[i + 1] & 0xF) << 2) | (bytes[i + 2] >>> 6) ];
+        output.push(_a[ ((bytes[i + 1] & 0xF) << 2) | (bytes[i + 2] >>> 6) ]);
         // Get the last 6 bits of the third byte
-        output += _a[ bytes[i + 2] & 0x3F ];
+        output.push(_a[ bytes[i + 2] & 0x3F ]);
       }
 
       // Turn the final "A" characters into "=" depending on necessary padding
+      let result = output.join("");
       if (added > 0) {
-        output = output.slice(0, -added) + ("=".repeat(added));
+        result = result.slice(0, -added) + ("=".repeat(added));
       }
 
-      return output;
+      return result;
     },
 
 
